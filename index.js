@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const app = express();
+const port = 3000;
 
 // Function to extract texture asset IDs using regex pattern
 const extractTextureIds = (data) => {
@@ -42,14 +43,13 @@ app.get('/:assetId', async (req, res) => {
   const imageUrl = await fetchTextureImage(assetId);
 
   if (imageUrl) {
-    // Send the image as the response for Discord to embed
-    res.set('Content-Type', 'image/webp'); // Set correct content type for the image
-    res.redirect(imageUrl); // Discord will embed this image
+    res.redirect(imageUrl); // Redirect to the texture image URL
   } else {
     res.status(500).send('Error fetching texture image');
   }
 });
 
 // Start the server
-module.exports = app; // Export the app for deployment
-
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});
