@@ -1,4 +1,5 @@
-import { Analytics } from "@vercel/analytics/react"
+const { Analytics } = require("@vercel/analytics/react");
+
 const express = require('express');
 const axios = require('axios');
 const app = express();
