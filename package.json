@@ -8,6 +8,7 @@
   "name": "toothvamp-imagegrab",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",  // Add this line to enable ES module support
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
