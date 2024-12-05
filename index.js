@@ -1,7 +1,22 @@
+import { Analytics } from "@vercel/analytics/react"
 const express = require('express');
 const axios = require('axios');
 const app = express();
 const port = 3000;
+
+// Function to extract asset ID from a Roblox URL
+const extractAssetIdFromUrl = (url) => {
+  // Check if the URL is already just an ID
+  if (/^\d+$/.test(url)) {
+    return url; // Return the ID directly
+  }
+
+  // Otherwise, try to extract the ID from a URL
+  const pattern = /roblox\.com\/catalog\/(\d+)/;
+  const match = url.match(pattern);
+  return match ? match[1] : null;
+};
+
 
 // Function to extract texture asset IDs using the modern regex pattern
 const extractTextureIdsModern = (data) => {
@@ -28,29 +43,21 @@ const extractTextureIdsOld = (data) => {
 // Function to get the texture image URL based on assetId
 const fetchTextureImage = async (assetId) => {
   try {
-    // Fetch asset delivery data
     const assetUrl = `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`;
     const assetResponse = await axios.get(assetUrl);
-    
-    // Extract asset IDs from the response data
-    const assetData = JSON.stringify(assetResponse.data); // Convert to string for regex matching
-    
-    // First attempt using the modern regex
+    const assetData = JSON.stringify(assetResponse.data);
+
     let textureIds = extractTextureIdsModern(assetData);
-    
-    // If no modern texture ID is found, use the fallback old regex
+
     if (textureIds.length === 0) {
       textureIds = extractTextureIdsOld(assetData);
     }
 
-    // Attempt to fetch the thumbnail for the first extracted textureId
     if (textureIds.length > 0) {
       const thumbnailUrl = `https://thumbnails.roblox.com/v1/assets?assetIds=${textureIds[0]}&returnPolicy=PlaceHolder&size=420x420&format=webp`;
       const thumbnailResponse = await axios.get(thumbnailUrl);
-      return thumbnailResponse.data.data[0].imageUrl; // Return the first image URL
+      return thumbnailResponse.data.data[0].imageUrl;
     }
-    
-    // If no textureId found, return null
     return null;
   } catch (error) {
     console.error('Error fetching texture image:', error);
@@ -60,45 +67,25 @@ const fetchTextureImage = async (assetId) => {
 
 // Handle favicon request
 app.get('/favicon.ico', (req, res) => {
-  res.status(204).send(); // Respond with 204 No Content, as we're not serving a favicon here
+  res.status(204).send();
 });
 
-// Endpoint to get texture image based on asset ID
-app.get('/:assetId', async (req, res) => {
-  const { assetId } = req.params;
-  let imageUrl = await fetchTextureImage(assetId);
+// Endpoint to get texture image from a Roblox URL
+app.get('/:url(*)', async (req, res) => {
+  const { url } = req.params;
+  const decodedUrl = decodeURIComponent(url); // Decode URL to handle encoded characters
+  const assetId = extractAssetIdFromUrl(decodedUrl);
+
+  if (!assetId) {
+    return res.status(400).send('Invalid Roblox URL.');
+  }
+
+  const imageUrl = await fetchTextureImage(assetId);
 
   if (imageUrl) {
-    res.redirect(imageUrl); // Redirect to the texture image URL
+    res.redirect(imageUrl);
   } else {
-    // Try to grab the second texture ID from the error response data (if exists)
-    try {
-      const assetUrl = `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`;
-      const assetResponse = await axios.get(assetUrl);
-      
-      // Extract asset IDs from the response data
-      const assetData = JSON.stringify(assetResponse.data); // Convert to string for regex matching
-      
-      // First attempt using the modern regex
-      let textureIds = extractTextureIdsModern(assetData);
-      
-      // If no modern texture ID is found, use the fallback old regex
-      if (textureIds.length === 0) {
-        textureIds = extractTextureIdsOld(assetData);
-      }
-
-      if (textureIds.length > 1) {
-        const secondAssetId = textureIds[1]; // Get the second textureId
-        const thumbnailUrl = `https://thumbnails.roblox.com/v1/assets?assetIds=${secondAssetId}&returnPolicy=PlaceHolder&size=420x420&format=webp`;
-        const thumbnailResponse = await axios.get(thumbnailUrl);
-        res.redirect(thumbnailResponse.data.data[0].imageUrl); // Redirect to the second texture image URL
-      } else {
-        res.status(500).send('Error fetching texture image');
-      }
-    } catch (retryError) {
-      console.error('Error fetching second texture image:', retryError);
-      res.status(500).send('Error fetching texture image');
-    }
+    res.status(500).send('Error fetching texture image.');
   }
 });
 
