@@ -46,7 +46,7 @@ const extractTextureIdsOld = (data) => {
 // Function to get the texture image URL based on assetId
 const fetchTextureImage = async (assetId) => {
   try {
-    const assetUrl = `https://assetdelivery.roblox.com/v1/asset?id=${assetId}`;
+    const assetUrl = `https://assetdelivery.roproxy.com/v1/asset?id=${assetId}`;
     const assetResponse = await axios.get(assetUrl);
     const assetData = JSON.stringify(assetResponse.data);
 
@@ -57,7 +57,7 @@ const fetchTextureImage = async (assetId) => {
     }
 
     if (textureIds.length > 0) {
-      const thumbnailUrl = `https://thumbnails.roblox.com/v1/assets?assetIds=${textureIds[0]}&returnPolicy=PlaceHolder&size=420x420&format=webp`;
+      const thumbnailUrl = `https://thumbnails.roproxy.com/v1/assets?assetIds=${textureIds[0]}&returnPolicy=PlaceHolder&size=420x420&format=webp`;
       const thumbnailResponse = await axios.get(thumbnailUrl);
       return thumbnailResponse.data.data[0].imageUrl;
     }
